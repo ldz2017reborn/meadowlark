@@ -2,7 +2,10 @@ var express = require('express');
 var app = express();
 var fortune = require('./lib/fortune.js');
 var credentials = require('./credentials.js');
+var connect = require(connect);
 
+app.use(connect.basicAuth());
+app.use(connect.compress);
 
 function getWeatherData() {
     return {
