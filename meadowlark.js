@@ -80,6 +80,7 @@ app.get('/', function (req, res) {
     res.render('home');
     res.cookie('guoqing', 'welcome to shenzhen');
     res.clearCookie('guoqing');
+    req.session.userName = 'Annoymous';
 });
 
 app.get('/about', function (req, res) {
@@ -173,6 +174,7 @@ app.use('/upload', function(req, res, next){
 });
 
 app.use(require('cookie-parser')(credentials.cookieSecret));
+app.use(require('express-session')());
 
 // 404 catch-all处理器(中间件)
 app.use(function (req, res, next) {
