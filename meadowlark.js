@@ -75,6 +75,12 @@ app.use(function (req, res, next) {
 });
 
 app.use(require('body-parser')());
+app.use(function(req, res, next){
+    //如果有即显示消息，把它传到上下文中，然后清除它
+    // res.locals.flash = req.session.flash;
+    // delete req.session.flash;
+    next();
+})
 
 app.get('/', function (req, res) {
     res.render('home');
