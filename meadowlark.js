@@ -1,6 +1,8 @@
 var express = require('express');
 var app = express();
 var fortune = require('./lib/fortune.js');
+var credentials = require('./credentials.js');
+
 
 function getWeatherData() {
     return {
@@ -76,6 +78,8 @@ app.use(require('body-parser')());
 
 app.get('/', function (req, res) {
     res.render('home');
+    res.cookie('guoqing', 'welcome to shenzhen');
+    res.clearCookie('guoqing');
 });
 
 app.get('/about', function (req, res) {
@@ -83,6 +87,7 @@ app.get('/about', function (req, res) {
         fortune: fortune.getFortune(),
         pageTestScript: '/qa/tests-about.js'
     });
+    res.cookie('signed_monster', 'nom nom');
 });
 
 app.get('/tours/hood-river', function (req, res) {
@@ -166,6 +171,8 @@ app.use('/upload', function(req, res, next){
         }
     })(req, res, next);
 });
+
+app.use(require('cookie-parser')(credentials.cookieSecret));
 
 // 404 catch-all处理器(中间件)
 app.use(function (req, res, next) {
