@@ -2,7 +2,27 @@ var express = require('express');
 var app = express();
 var fortune = require('./lib/fortune.js');
 var credentials = require('./credentials.js');
+var nodemailer = require('nodemailer');
+// var mailTransport = nodemailer.createTransport('SMTP', {
+//     service: 'Gmail',
+//     auth: {
+//         user: credentials.gmail.user,
+//         pass: credentials.gmail.password,
+//     }
+// });
+// var emailService = require('./lib/email.js')(credentials);
+// emailService.send('joecustomer@gmail.com', 'Hood River tours on sale today!',
+//         'Get \'em while they\'re hot!');
 
+// mailTransport.sendMail({
+//     from: '"Meadowlark Travel" <info@meadowlarktravel.com>',
+//     to: 'joecustomer@gmail.com',
+//     subject: 'Your Meadowlark Travel Tour',
+//     text: 'Thank you for booking your trip with Meadowlark Travel.' +
+//         'We look forward to your visit!',
+// }, function (err) {
+//     if (err) console.error('Unable to send email: ' + error);
+// });
 
 function getWeatherData() {
     return {
@@ -75,7 +95,7 @@ app.use(function (req, res, next) {
 });
 
 app.use(require('body-parser')());
-app.use(function(req, res, next){
+app.use(function (req, res, next) {
     //如果有即显示消息，把它传到上下文中，然后清除它
     // res.locals.flash = req.session.flash;
     // delete req.session.flash;
@@ -144,19 +164,48 @@ app.post('/process', function (req, res) {
     }
 });
 
+app.post('/cart/checkout', function (req, res) {
+    var cart = req.session.cart;
+    if (!cart) next(new Error('Cart does not exist.'));
+    var name = req.body.name || '', email = req.body.email || ''; // 输入验证
+    if (!email.match(VALID_EMAIL_REGEX))
+        return res.next(new Error('Invalid email address.'));
+    // 分配一个随机的购物车 ID;一般我们会用一个数据库 ID 
+    cart.number = Math.random().toString().replace(/^0\.0*/, '');
+    cart.billing = {
+        name: name,
+        email: email,
+    };
+    res.render('email/cart-thank-you',
+        { layout: null, cart: cart }, function (err, html) {
+            if (err) console.log('error in email template');
+            mailTransport.sendMail({
+                from: '"Meadowlark Travel": info@meadowlarktravel.com',
+                to: cart.billing.email,
+                subject: 'Thank You for Book your Trip with Meadowlark',
+                html: html,
+                generateTextFromHtml: true
+            }, function (err) {
+                if (err) console.error('Unable to send confirmation: ' + err.stack);
+            });
+        }
+    );
+    res.render('cart-thank-you', { cart: cart });
+});
+
 var formidable = require('formidable');
 
-app.get('/contest/vacation-photo', function(req, res){
+app.get('/contest/vacation-photo', function (req, res) {
     var now = new Date();
-    res.render('contest/vacation-photo',{
+    res.render('contest/vacation-photo', {
         year: now.getFullYear(), month: now.getMonth()
     });
 });
 
-app.post('/contest/vacation-photo/:year/:month', function(req, res){
+app.post('/contest/vacation-photo/:year/:month', function (req, res) {
     var form = new formidable.IncomingForm();
-    form.parse(req, function(err, fields, files) {
-        if(err) return res.redirect(303, '/error');
+    form.parse(req, function (err, fields, files) {
+        if (err) return res.redirect(303, '/error');
         console.log('received fields:');
         console.log(fields);
         console.log('received files:');
@@ -167,13 +216,13 @@ app.post('/contest/vacation-photo/:year/:month', function(req, res){
 
 var jqupload = require('jquery-file-upload-middleware');
 
-app.use('/upload', function(req, res, next){
+app.use('/upload', function (req, res, next) {
     var now = Date.now();
     jqupload.fileHandler({
-        uploadDir: function() {
+        uploadDir: function () {
             return _dirname + '/public/uploads/' + now;
         },
-        uploadUrl: function(){
+        uploadUrl: function () {
             return '/uploads/' + now;
         }
     })(req, res, next);
@@ -194,3 +243,4 @@ app.use(function (err, req, res, next) {
     res.status(500);
     res.render('500');
 });
+
